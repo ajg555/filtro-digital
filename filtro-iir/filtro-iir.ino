@@ -96,3 +96,5 @@ void loop() {
   delay(sensorValue);
 }
 */
+//FONTES
+//https://github.com/curiores/ArduinoTutorials/blob/main/BasicFilters/ArduinoImplementations/LowPass/SimpleExamples/butterworth2.ino
