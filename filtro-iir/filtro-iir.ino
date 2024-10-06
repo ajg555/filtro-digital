@@ -10,21 +10,35 @@
 // ========== HABILITANDO MODO DEBUG ========
 
 #define DEBUG_FILTER
+#undef DEBUG_FILTER
 
 
 // ========== Macros e constantes ==========
 
-#define ORDER        3                                                 // qtde. de taps do filtro
 #define FREQ_AMOST  1E3                                               // freq. de amost. do filtro
-                                                                      // coef b dos polos do filtro
-#define IIR_B_COEF  {0.00024132, 0.00048264, 0.00024132}              
-                                                                      // coef b dos zeros do filtro
-#define IIR_A_COEF  {1.95558189, -0.95654717}
+
+/*
+Transfer function 'H' from input 'u1' to output ...
+
+      0.9329 z^4 - 3.47 z^3 + 5.092 z^2 - 3.47 z + 0.9329
+ y1:  ---------------------------------------------------
+        z^4 - 3.697 z^3 + 5.394 z^2 - 3.654 z + 0.9766
+y[n] = 0.9329x[n] + −3.47x[n−1] + 5.092x[n−2] + −3.47x[n−3] + 0.9329x[n−4] + 3.697y[n−1] + −5.394y[n−2] + 3.654y[n−3] + −0.9766y[n−4]
+*/
+
+                                                                      // coef b das entradas filtro
+#define IIR_B_COEF  {0.9329,  -3.4700,   5.0924,  -3.4700,   0.9329}             
+#define IIR_B_SIZE  5                                                 // qtde de coef das entradas    (num)
+
+                                                                      // coef a das saidas do filtro  (den)
+#define IIR_A_COEF  {1.0000,  -3.6973,   5.3940,  -3.6539,   0.9766}
+#define IIR_A_SIZE  5                                                 // qtde de coef das saidas
 
 // ========== INCLUSAO DAS BIBLIOTECAS ========
 
 // ========== Mapeamento de portas =========
 
+#define FUNCTION_GENERATOR A0                                         // entrada analógica para gerador de funcoes
 
 // ========== redefinicao de tipo ==========
 typedef unsigned char u_int8;                                         // var. int. de  8 bits nao sinalizada
@@ -33,15 +47,17 @@ typedef unsigned long u_int32;                                        // var. in
 
 // ========== Variaveis globais ============
 
-u_int32 sample_time = 0;                                              // controle de timer para freq. de amost.
-float x[ORDER],                                                       // vetor de entradas
-      y[ORDER],                                                       // vetor de saidas
-      b[] = IIR_B_COEF,                                               // coef b dos zeros do filtro
-      a[] = IIR_A_COEF;                                               // coef a dos polos do filtro
+u_int32 sample_time = 0,                                              // controle de timer para freq. de amost.
+        ctrl_serial = 0;                                              // controle print da saida na serial
+float x[IIR_B_SIZE],                                                  // vetor de entradas  (num)
+      y[IIR_A_SIZE],                                                  // vetor de saidas    (den)
+      b[] = IIR_B_COEF,                                               // coef b das saidas do filtro
+      a[] = IIR_A_COEF;                                               // coef a das entradas do filtro
 
 // ========== Prototipos das Funcoes ========
 void zeros(float *v, u_int16 vsize);                                  // inicializa vetores com 0
 void filterResponse();
+void inputRead();
 void signalFilter(float *a, float *b, u_int16 sizeA, u_int16 sizeB);
 
 // ========== Configuracoes iniciais ========
@@ -49,20 +65,84 @@ void setup() {
   Serial.begin(115200);                                               // inicializando Serial/UART
                                                                       // inicializando entradas/saidas com 0, passando o vetor e o seu tamanho
   zeros(x, sizeof(x)/sizeof(x[0]));
-  zeros(y, sizeof(y)/sizeof(y[0]));
-    
+  zeros(y, sizeof(y)/sizeof(y[0])); 
 }
 
 // ========== Codigo principal ==============
 void loop() {
 
-  // filtragem do sinal
+                                                                      // ciclo de amostragem e filtragem do sinal
+  if(micros() - sample_time > (int) (1/FREQ_AMOST)*1E6){
+    sample_time = micros();
+    
+                                                                      // captura do sinal
+    x[0] = analogRead(FUNCTION_GENERATOR) * (5.0/1024);               // ADC de 10 bits de resolução - 0 ~ 5V
+                                                                      // filtragem do sinal
+    signalFilter(y, x, a, b, sizeof(a)/sizeof(a[0]), sizeof(b)/sizeof(b[0]));
 
+                                                                      // printando sinal filtrado
+    ctrl_serial++;
+    if(ctrl_serial % 3 == 0){
+      Serial.print(x[0]);
+      Serial.print(",");
+      Serial.println(y[0]);
+    }
+  }
 }
 
 // ========== Desenvolv. das funcoes ========
 
-void signalFilter(float *a, float *b, u_int16 sizeA, u_int16 sizeB);
+void signalFilter(float *output, float *input, float *a, float *b, u_int16 sizeA, u_int16 sizeB){
+
+  
+//  Transfer function 'H' from input 'u1' to output ...
+//
+//      0.8343 z^2 - 1.551 z + 0.8343
+// y1:  -----------------------------
+//         z^2 - 1.551 z + 0.6686    
+// y[n] = 0.8885x[n] + −3.304x[n−1] + 4.849x[n−2] + −3.304x[n−3] + 0.8885x[n−4] + 3.713y[n−1] + −5.441y[n−2] + 3.702y[n−3] + −0.9938y[n−4]
+  
+  u_int16 posDelay = 0;
+  output[0] = 0;
+
+  #ifdef DEBUG_FILTER
+    Serial.print("y[n] = ");
+  #endif
+  
+                                                                      // aplicando filtro no sinal
+  for(posDelay = 0; posDelay < sizeB; posDelay++){              
+    output[0] += b[posDelay]*input[posDelay];
+    #ifdef DEBUG_FILTER
+      Serial.print(b[posDelay]);
+      Serial.print(" * ");
+      Serial.print(x[posDelay]);
+      Serial.print(" + ");
+    #endif
+  }
+
+  for(posDelay = 1; posDelay < sizeA; posDelay++){
+    output[0] -= a[posDelay]*output[posDelay];
+    #ifdef DEBUG_FILTER
+      Serial.print(a[posDelay]);
+      Serial.print(" * ");
+      Serial.print(y[posDelay]);
+      Serial.print(" + ");
+    #endif
+  }
+
+  #ifdef DEBUG_FILTER
+    Serial.print(" = ");
+    Serial.println(output[0]);
+  #endif
+  
+  for(posDelay = sizeA - 1; posDelay > 0; posDelay--){                // shift de amostras no vetor de entradas - primeira posicao é a nova amostra do ADC e é pulada no laço
+    input[posDelay] = input[posDelay - 1];
+  }
+
+  for(posDelay = sizeB - 1; posDelay > 0; posDelay--){                // shift de amostras no vetor de saidas - primeira posicao é o calculo atual e é pulada no laço
+    output[posDelay] = output[posDelay - 1];
+  }
+}
 void filterResponse();
 
 void zeros(float *v, u_int16 vsize){
@@ -72,29 +152,8 @@ void zeros(float *v, u_int16 vsize){
   }
 }
 
-/*
-
-int sensorPin = A0;    // select the input pin for the potentiometer
-int ledPin = 13;      // select the pin for the LED
-int sensorValue = 0;  // variable to store the value coming from the sensor
-
-void setup() {
-  // declare the ledPin as an OUTPUT:
-  pinMode(ledPin, OUTPUT);
-}
-
-void loop() {
-  // read the value from the sensor:
-  sensorValue = analogRead(sensorPin);
-  // turn the ledPin on
-  digitalWrite(ledPin, HIGH);
-  // stop the program for <sensorValue> milliseconds:
-  delay(sensorValue);
-  // turn the ledPin off:
-  digitalWrite(ledPin, LOW);
-  // stop the program for for <sensorValue> milliseconds:
-  delay(sensorValue);
-}
+/* 
+*  FONTES
+*  https://github.com/curiores/ArduinoTutorials/blob/main/BasicFilters/ArduinoImplementations/LowPass/SimpleExamples/butterworth2.ino
+*
 */
-//FONTES
-//https://github.com/curiores/ArduinoTutorials/blob/main/BasicFilters/ArduinoImplementations/LowPass/SimpleExamples/butterworth2.ino
