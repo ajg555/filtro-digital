@@ -1,3 +1,4 @@
+
 % ==============================================
 % atividade 04 - A
 
@@ -26,9 +27,7 @@ fsig=abs(fft(sig));
 flipfft(fsig,f)
 title('DFT do sinal')
 
-% aplicar chebychev 1
-% fechar banda sobre a freq. principal
-
+% Filtro Chebychev 1
 %RP - ripple aceitável na banda passante - dB
 %Wc - frequência de corte
 %N - ordem do filtro
@@ -37,32 +36,22 @@ title('DFT do sinal')
 %Wp - banda passante
 %Ws - banda de rejeição
 
-RP=20;
-RS=30;
-fp=[59, 61];
-fs=[50, 70];
+RP=0.5;
+fc=[58,62];
+Wc=fc/(f/2);
+N=2;
 
-Ws=fs/(f/2);
-Wp=fp/(f/2);
-
-% calculo dos coef. do filtro
-[N,Wp]=cheb2ord(Wp, Ws, RP, RS);
-[b,a]=cheby2(N,RP,Wp, 'stop');
-% ordem 2
-
-% resposta em freq. do filtro
+[b,a]=cheby1(N,RP,Wc,'stop');
 [h,freq]=freqz(b,a,length(sig),f);
 K0=max(abs(h));
-figure
 plot(freq,20*log10(abs(h)/K0))
 xlabel("Frequência (Hz)")
 ylabel("Magnitude de H(jw)")
 
-% filtragem do sinal
+%%% Filtragem
 filt=filter(b,a,sig);
 ffilt=20*log10(abs(fft(filt)));
 flipfft(ffilt,f)
-title('Sinal filtrado')
 
 % funcao de transferência do filtro
 H=tf(b,a,1/f)
