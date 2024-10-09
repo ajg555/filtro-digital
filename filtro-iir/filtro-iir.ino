@@ -9,7 +9,7 @@
 
 // ========== HABILITANDO MODO DEBUG ========
 
-#define DEBUG_FILTER
+#define DEBUG_FILTER                                                  // printa log de eq. de dif. na serial
 #undef DEBUG_FILTER
 
 
@@ -80,29 +80,22 @@ void loop() {
                                                                       // filtragem do sinal
     signalFilter(y, x, a, b, sizeof(a)/sizeof(a[0]), sizeof(b)/sizeof(b[0]));
 
-                                                                      // printando sinal filtrado
+                                                                       // printando sinal filtrado
     ctrl_serial++;
-    if(ctrl_serial % 3 == 0){
+    //if(ctrl_serial % 3 == 0){                                        // limita amostragem de print do sinal na serial - opcional
       Serial.print(x[0]);
       Serial.print(",");
       Serial.println(y[0]);
-    }
+    //}
   }
 }
 
 // ========== Desenvolv. das funcoes ========
-
+                                                                     // filtragem de sinal
 void signalFilter(float *output, float *input, float *a, float *b, u_int16 sizeA, u_int16 sizeB){
-
-  
-//  Transfer function 'H' from input 'u1' to output ...
-//
-//      0.8343 z^2 - 1.551 z + 0.8343
-// y1:  -----------------------------
-//         z^2 - 1.551 z + 0.6686    
-// y[n] = 0.8885x[n] + −3.304x[n−1] + 4.849x[n−2] + −3.304x[n−3] + 0.8885x[n−4] + 3.713y[n−1] + −5.441y[n−2] + 3.702y[n−3] + −0.9938y[n−4]
   
   u_int16 posDelay = 0;
+  
   output[0] = 0;
 
   #ifdef DEBUG_FILTER
@@ -134,6 +127,15 @@ void signalFilter(float *output, float *input, float *a, float *b, u_int16 sizeA
     Serial.print(" = ");
     Serial.println(output[0]);
   #endif
+
+  /*
+    Transfer function 'H' from input 'u1' to output ...
+    
+          0.9329 z^4 - 3.47 z^3 + 5.092 z^2 - 3.47 z + 0.9329
+     y1:  ---------------------------------------------------
+            z^4 - 3.697 z^3 + 5.394 z^2 - 3.654 z + 0.9766
+    y[n] = 0.9329x[n] + −3.47x[n−1] + 5.092x[n−2] + −3.47x[n−3] + 0.9329x[n−4] + 3.697y[n−1] + −5.394y[n−2] + 3.654y[n−3] + −0.9766y[n−4]
+  */
   
   for(posDelay = sizeA - 1; posDelay > 0; posDelay--){                // shift de amostras no vetor de entradas - primeira posicao é a nova amostra do ADC e é pulada no laço
     input[posDelay] = input[posDelay - 1];
