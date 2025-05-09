@@ -1,2 +1,2 @@
 # filtro-digital
-CAT332 - exercício final - filtro digital
+Exemplo de aplicação de filtros digitais com microcontroladores em ambiente Arduino
