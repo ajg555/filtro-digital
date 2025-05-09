@@ -54,6 +54,9 @@ ylabel("Magnitude de H(jw)")
 %%% Filtragem
 filt=filter(b,a,sig);
 ffilt=20*log10(abs(fft(filt)));
+% Função flipfft() do arquivo flipfft.m foi complementamente removida do repositório.
+% Código é de outra autoria e não foi consultado por uma possível permissão para divulgação.
+% Futuramente será corrigido ou reescrito.
 %flipfft(ffilt,f)
 
 % funcao de transferência do filtro
