@@ -54,7 +54,7 @@ ylabel("Magnitude de H(jw)")
 %%% Filtragem
 filt=filter(b,a,sig);
 ffilt=20*log10(abs(fft(filt)));
-flipfft(ffilt,f)
+%flipfft(ffilt,f)
 
 % funcao de transferência do filtro
 H=tf(b,a,1/f)
