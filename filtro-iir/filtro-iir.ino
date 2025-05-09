@@ -1,7 +1,8 @@
 /*
  * 
- * CAT332 - Exercício Final 04
- * Alex Júnior Guimarães - 17.2.1471
+ * Algoritmo para aplicação de filtros digitais em ambiente Arduino
+ * Exemplo utilizando um filtro notch de fc = 60Hz
+ * Alex Júnior Guimarães
  * Arduino IDE 1.8.19
  *
  */
