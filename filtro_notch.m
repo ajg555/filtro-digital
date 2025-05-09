@@ -1,15 +1,9 @@
 % ==============================================
-% Exercicio Final
 % Alex Junior Guimaraes
-% 17.2.1471
 % ==============================================
 
 % ==============================================
-% atividade 01 - projetando filtro digital
-
-% Faça o projeto de um filtro notch de, pelo menos, segunda ordem digital para atenuar uma
-% componente em frequência de 60Hz. Ele deve ser implementado em um Arduino que será
-% fornecido
+% Projetando filtro digital notch de fc 60Hz
 
 clc;
 close all;
